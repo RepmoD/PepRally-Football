@@ -12,7 +12,11 @@ import SwiftData
 struct GridironApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            // Use explicit namespaces to avoid ambiguity
+            Item.TeamModel.self,
+            Item.PlayerModel.self,
+            Item.DriveModel.self,
+            Item.PlayModel.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -26,7 +30,7 @@ struct GridironApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .modelContainer(sharedModelContainer)
         }
-        .modelContainer(sharedModelContainer)
     }
 }

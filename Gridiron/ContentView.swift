@@ -10,50 +10,48 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    
+    // Use a more specific type name to avoid ambiguity
+    @Query private var teamModels: [Item.TeamModel]
+    // Alternatively, if models are defined in a different file:
+    // @Query private var teamModels: [GridironModels.TeamModel]
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        VStack {
+            // Simple UI to verify build is working
+            if teamModels.isEmpty {
+                Text("No teams found")
+                
+                Button("Add Sample Team") {
+                    addSampleTeam()
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+                .buttonStyle(.bordered)
+                .padding()
+            } else {
+                List(teamModels) { team in
+                    Text(team.name)
+                        .foregroundColor(team.primaryColor)
                 }
             }
-        } detail: {
-            Text("Select an item")
         }
+        .padding()
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+    
+    private func addSampleTeam() {
+        // Explicitly specify which TeamModel you're using
+        let team = Item.TeamModel(
+            name: "Sample Team",
+            shortName: "TEAM",
+            primaryColorHex: "0000FF",
+            secondaryColorHex: "FFFFFF"
+        )
+        
+        modelContext.insert(team)
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: [Item.TeamModel.self, Item.PlayerModel.self,
+                              Item.DriveModel.self, Item.PlayModel.self], inMemory: true)
 }

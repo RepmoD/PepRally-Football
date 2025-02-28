@@ -1,5 +1,13 @@
 //
-//  Item.swift
+//  PlayerModel.swift
+//  Gridiron
+//
+//  Created by David Brazeal on 2/26/25.
+//
+
+
+//
+//  GridironModels.swift
 //  Gridiron
 //
 //  Created by David Brazeal on 2/24/25.
@@ -151,59 +159,6 @@ final class TeamModel {
         let seconds = Int(timeOfPossession) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-}
-
-// MARK: - Non-SwiftData Supporting Models
-enum PlayType: String, Identifiable, CaseIterable {
-    case pass = "Pass"
-    case run = "Run"
-    
-    var id: String { self.rawValue }
-}
-
-enum DriveResult: String, Identifiable, CaseIterable {
-    case touchdown = "Touchdown"
-    case fieldGoal = "Field Goal"
-    case punt = "Punt"
-    case turnover = "Turnover"
-    case downs = "Turnover on Downs"
-    case endOfHalf = "End of Half"
-    case endOfGame = "End of Game"
-    
-    var id: String { self.rawValue }
-    
-    var color: Color {
-        switch self {
-        case .touchdown, .fieldGoal:
-            return .green
-        case .punt:
-            return .yellow
-        case .turnover, .downs:
-            return .red
-        case .endOfHalf, .endOfGame:
-            return .gray
-        }
-    }
-}
-
-enum Position: String, CaseIterable {
-    case qb = "QB"
-    case rb = "RB"
-    case wr = "WR"
-    case te = "TE"
-    case ol = "OL"
-    case dl = "DL"
-    case lb = "LB"
-    case db = "DB"
-    case k = "K"
-    case p = "P"
-}
-
-struct Player: Identifiable {
-    let id: UUID
-    let number: Int
-    let name: String
-    let position: Position
 }
 
 // MARK: - Extensions
