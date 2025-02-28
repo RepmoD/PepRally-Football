@@ -1,235 +1,135 @@
-//
-//  Item.swift
-//  Gridiron
-//
-//  Created by David Brazeal on 2/24/25.
-//
-
 import Foundation
-import SwiftUI
-import SwiftData
 
-// MARK: - SwiftData Models
-
-@Model
-final class PlayerModel {
-    var number: Int
-    var name: String
-    var position: String
-    
-    @Relationship(deleteRule: .cascade, inverse: \PlayModel.player)
-    var plays: [PlayModel] = []
-    
-    @Relationship(deleteRule: .cascade, inverse: \PlayModel.receiver)
-    var receptions: [PlayModel] = []
-    
-    @Relationship(deleteRule: .nullify, inverse: \TeamModel.players)
-    var team: TeamModel?
-    
-    init(number: Int, name: String, position: String) {
-        self.number = number
-        self.name = name
-        self.position = position
-    }
+// MARK: - Player Model
+struct PlayerData: Identifiable, Codable {
+    let id = UUID()
+    let number: Int
+    let name: String
+    let position: String
 }
 
-@Model
-final class PlayModel {
-    var type: String
-    var yards: Int
-    var isComplete: Bool
-    var timestamp: Date
-    
-    @Relationship(deleteRule: .nullify, inverse: \PlayerModel.plays)
-    var player: PlayerModel?
-    
-    @Relationship(deleteRule: .nullify, inverse: \PlayerModel.receptions)
-    var receiver: PlayerModel?
-    
-    @Relationship(deleteRule: .nullify, inverse: \DriveModel.plays)
-    var drive: DriveModel?
-    
-    init(type: String, yards: Int, isComplete: Bool = true) {
-        self.type = type
-        self.yards = yards
-        self.isComplete = isComplete
-        self.timestamp = Date()
-    }
+// MARK: - Team Model
+struct TeamData: Identifiable, Codable {
+    let id = UUID()
+    let name: String
+    let isHome: Bool
+    let primaryColor: String
+    var quarterbacks: [PlayerData]
+    var receivers: [PlayerData]
+    var runners: [PlayerData]
+    var kickers: [PlayerData]
 }
 
-@Model
-final class DriveModel {
-    var number: Int
+// MARK: - Play Model
+struct PlayData: Identifiable, Codable {
+    let id = UUID()
+    let sequence: Int
+    let type: PlayType
+    let description: String
+    let yards: Int
+    let isFirstDown: Bool
+    let isScoring: Bool
+    
+    // Specific play details
+    var quarterback: String?
+    var quarterbackName: String?
+    var receiver: String?
+    var receiverName: String?
+    var runner: String?
+    var runnerName: String?
+    var isComplete: Bool? // for pass plays
+    var down: Int
+    var yardsToGo: Int
+}
+
+// MARK: - Drive Model
+struct DriveData: Identifiable, Codable {
+    let id = UUID()
+    let sequence: Int
+    let team: TeamData
     var startYardLine: Int
-    var startTime: Date
-    var endTime: Date?
-    var result: String
-    var timestamp: Date
-    
-    @Relationship(deleteRule: .nullify, inverse: \TeamModel.drives)
-    var team: TeamModel?
-    
-    @Relationship(deleteRule: .cascade, inverse: \PlayModel.drive)
-    var plays: [PlayModel] = []
-    
-    init(number: Int, startYardLine: Int, startTime: Date, result: String = "") {
-        self.number = number
-        self.startYardLine = startYardLine
-        self.startTime = startTime
-        self.result = result
-        self.timestamp = Date()
-    }
-    
-    var duration: TimeInterval {
-        guard let endTime = endTime else { return 0 }
-        return startTime.distance(to: endTime)
-    }
-    
-    var formattedDuration: String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        return String(format: "%d:%02d", minutes, seconds)
-    }
+    var currentYardLine: Int
+    var startTime: String
+    var endTime: String?
+    var result: DriveResult?
+    var plays: [PlayData]
+    var possession: String? // time of possession
     
     var totalYards: Int {
         return plays.reduce(0) { $0 + $1.yards }
     }
-}
-
-@Model
-final class TeamModel {
-    var name: String
-    var shortName: String
-    var primaryColorHex: String
-    var secondaryColorHex: String
-    var timestamp: Date
     
-    @Relationship(deleteRule: .cascade, inverse: \PlayerModel.team)
-    var players: [PlayerModel] = []
-    
-    @Relationship(deleteRule: .cascade, inverse: \DriveModel.team)
-    var drives: [DriveModel] = []
-    
-    init(name: String, shortName: String, primaryColorHex: String, secondaryColorHex: String) {
-        self.name = name
-        self.shortName = shortName
-        self.primaryColorHex = primaryColorHex
-        self.secondaryColorHex = secondaryColorHex
-        self.timestamp = Date()
-    }
-    
-    var primaryColor: Color {
-        Color(hex: primaryColorHex)
-    }
-    
-    var secondaryColor: Color {
-        Color(hex: secondaryColorHex)
-    }
-    
-    var totalYards: Int {
-        return drives.flatMap { $0.plays }.reduce(0) { $0 + $1.yards }
-    }
-    
-    var passingYards: Int {
-        return drives.flatMap { $0.plays }
-            .filter { $0.type == PlayType.pass.rawValue && $0.isComplete }
-            .reduce(0) { $0 + $1.yards }
-    }
-    
-    var rushingYards: Int {
-        return drives.flatMap { $0.plays }
-            .filter { $0.type == PlayType.run.rawValue }
-            .reduce(0) { $0 + $1.yards }
-    }
-    
-    var timeOfPossession: TimeInterval {
-        return drives.reduce(0) { $0 + $1.duration }
-    }
-    
-    var formattedTimeOfPossession: String {
-        let minutes = Int(timeOfPossession) / 60
-        let seconds = Int(timeOfPossession) % 60
-        return String(format: "%d:%02d", minutes, seconds)
+    var firstDowns: Int {
+        return plays.filter { $0.isFirstDown }.count
     }
 }
 
-// MARK: - Non-SwiftData Supporting Models
-enum PlayType: String, Identifiable, CaseIterable {
-    case pass = "Pass"
-    case run = "Run"
-    
-    var id: String { self.rawValue }
+// MARK: - Score Model
+struct ScoreData: Codable {
+    var points: Int = 0
+    var touchdowns: Int = 0
+    var fieldGoals: Int = 0
+    var extraPoints: Int = 0
+    var twoPointConversions: Int = 0
+    var safeties: Int = 0
 }
 
-enum DriveResult: String, Identifiable, CaseIterable {
+// MARK: - PlayerScore Model
+struct PlayerScoreData: Identifiable, Codable {
+    let id = UUID()
+    let player: PlayerData
+    var touchdowns: Int = 0
+    var fieldGoals: Int = 0
+    var extraPoints: Int = 0
+    var twoPointConversions: Int = 0
+    var safeties: Int = 0
+    
+    var totalPoints: Int {
+        return (touchdowns * 6) + (fieldGoals * 3) + extraPoints + (twoPointConversions * 2) + (safeties * 2)
+    }
+}
+
+// MARK: - Enumerations
+enum ScoreType: String, CaseIterable, Codable {
     case touchdown = "Touchdown"
     case fieldGoal = "Field Goal"
-    case punt = "Punt"
-    case turnover = "Turnover"
-    case downs = "Turnover on Downs"
-    case endOfHalf = "End of Half"
-    case endOfGame = "End of Game"
+    case extraPoint = "Extra Point"
+    case twoPointConversion = "Two-Point Conversion"
+    case safety = "Safety"
     
-    var id: String { self.rawValue }
-    
-    var color: Color {
+    var points: Int {
         switch self {
-        case .touchdown, .fieldGoal:
-            return .green
-        case .punt:
-            return .yellow
-        case .turnover, .downs:
-            return .red
-        case .endOfHalf, .endOfGame:
-            return .gray
+        case .touchdown: return 6
+        case .fieldGoal: return 3
+        case .extraPoint: return 1
+        case .twoPointConversion: return 2
+        case .safety: return 2
         }
     }
 }
 
-enum Position: String, CaseIterable {
-    case qb = "QB"
-    case rb = "RB"
-    case wr = "WR"
-    case te = "TE"
-    case ol = "OL"
-    case dl = "DL"
-    case lb = "LB"
-    case db = "DB"
-    case k = "K"
-    case p = "P"
+// MARK: - Utility Structs
+struct CurrentPlayData {
+    var quarterback: String = ""
+    var quarterbackName: String? = nil
+    var receiver: String = ""
+    var receiverName: String? = nil
+    var runner: String = ""
+    var runnerName: String? = nil
+    var yards: Int = 0
+    var isComplete: Bool = true
 }
 
-struct Player: Identifiable {
-    let id: UUID
-    let number: Int
-    let name: String
-    let position: Position
+struct GameDataStorage: Codable {
+    let drives: [DriveData]
+    let homeScore: ScoreData
+    let awayScore: ScoreData
+    let playerScores: [String: [PlayerScoreData]]
+    let lastUpdated: Date
 }
 
-// MARK: - Extensions
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
+struct TeamsDataStorage: Codable {
+    let homeTeam: TeamData
+    let awayTeam: TeamData
+    let lastUpdated: Date
 }

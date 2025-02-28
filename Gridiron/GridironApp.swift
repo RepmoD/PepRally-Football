@@ -12,7 +12,6 @@ import SwiftData
 struct GridironApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            // Use direct type names without namespace
             TeamModel.self,
             PlayerModel.self,
             DriveModel.self,

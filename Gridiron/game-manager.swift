@@ -3,76 +3,86 @@ import Combine
 
 class GameManager: ObservableObject {
     // MARK: - Published Properties
-    @Published var homeTeam: Team
-    @Published var awayTeam: Team
-    @Published var homeScore = Score()
-    @Published var awayScore = Score()
-    @Published var playerScores: [String: [PlayerScore]] = ["home": [], "away": []]
-    @Published var activeDrive: Drive?
-    @Published var drives: [Drive] = []
-    @Published var activeTeam: Team?
+    @Published var homeTeam: TeamData
+    @Published var awayTeam: TeamData
+    @Published var homeScore = ScoreData()
+    @Published var awayScore = ScoreData()
+    @Published var playerScores: [String: [PlayerScoreData]] = ["home": [], "away": []]
+    @Published var activeDrive: DriveData?
+    @Published var drives: [DriveData] = []
+    @Published var activeTeam: TeamData?
     @Published var currentDown: Int = 1
     @Published var yardsToGo: Int = 10
     @Published var playType: PlayType = .run
     
     // MARK: - Other Properties
-    private(set) var currentPlay: PlayData
+    private(set) var currentPlay: CurrentPlayData
     
     // MARK: - Initializer
     init() {
         // Initialize with default teams and players
-        self.homeTeam = Team(
+        self.homeTeam = TeamData(
             name: "Home",
             isHome: true,
             primaryColor: "blue",
             quarterbacks: [
-                Player(number: 12, name: "Brady", position: "QB"),
-                Player(number: 7, name: "Rivers", position: "QB")
+                PlayerData(number: 12, name: "Brady", position: "QB"),
+                PlayerData(number: 7, name: "Rivers", position: "QB")
             ],
             receivers: [
-                Player(number: 80, name: "Smith", position: "WR"),
-                Player(number: 88, name: "Jones", position: "WR"),
-                Player(number: 84, name: "Brown", position: "TE")
+                PlayerData(number: 80, name: "Smith", position: "WR"),
+                PlayerData(number: 88, name: "Jones", position: "WR"),
+                PlayerData(number: 84, name: "Brown", position: "TE")
             ],
             runners: [
-                Player(number: 22, name: "Williams", position: "RB"),
-                Player(number: 26, name: "Taylor", position: "RB"),
-                Player(number: 30, name: "Harris", position: "FB")
+                PlayerData(number: 22, name: "Williams", position: "RB"),
+                PlayerData(number: 26, name: "Taylor", position: "RB"),
+                PlayerData(number: 30, name: "Harris", position: "FB")
             ],
             kickers: [
-                Player(number: 3, name: "Tucker", position: "K")
+                PlayerData(number: 3, name: "Tucker", position: "K")
             ]
         )
         
-        self.awayTeam = Team(
+        self.awayTeam = TeamData(
             name: "Away",
             isHome: false,
             primaryColor: "red",
             quarterbacks: [
-                Player(number: 9, name: "Stafford", position: "QB"),
-                Player(number: 5, name: "Jackson", position: "QB")
+                PlayerData(number: 9, name: "Stafford", position: "QB"),
+                PlayerData(number: 5, name: "Jackson", position: "QB")
             ],
             receivers: [
-                Player(number: 81, name: "Johnson", position: "WR"),
-                Player(number: 85, name: "Cooper", position: "WR"),
-                Player(number: 87, name: "Andrews", position: "TE")
+                PlayerData(number: 81, name: "Johnson", position: "WR"),
+                PlayerData(number: 85, name: "Cooper", position: "WR"),
+                PlayerData(number: 87, name: "Andrews", position: "TE")
             ],
             runners: [
-                Player(number: 23, name: "Barkley", position: "RB"),
-                Player(number: 25, name: "Edwards", position: "RB"),
-                Player(number: 45, name: "Ricard", position: "FB")
+                PlayerData(number: 23, name: "Barkley", position: "RB"),
+                PlayerData(number: 25, name: "Edwards", position: "RB"),
+                PlayerData(number: 45, name: "Ricard", position: "FB")
             ],
             kickers: [
-                Player(number: 4, name: "Butker", position: "K")
+                PlayerData(number: 4, name: "Butker", position: "K")
             ]
         )
         
         // Initialize current play data
-        self.currentPlay = PlayData()
+        self.currentPlay = CurrentPlayData()
     }
+}
+
+// Helper extension for padding strings
+extension String {
+    func padLeft(toLength length: Int, withPad character: Character) -> String {
+        let paddingLength = length - self.count
+        guard paddingLength > 0 else { return self }
+        return String(repeating: character, count: paddingLength) + self
+    }
+}
     
     // MARK: - Team Selection
-    func selectTeam(_ team: Team) {
+    func selectTeam(_ team: TeamData) {
         // Only allow team selection when no active drive
         guard activeDrive == nil else { return }
         activeTeam = team
@@ -82,7 +92,7 @@ class GameManager: ObservableObject {
     func startNewDrive(startYardLine: Int, startTime: String) {
         guard let team = activeTeam else { return }
         
-        let newDrive = Drive(
+        let newDrive = DriveData(
             sequence: drives.count + 1,
             team: team,
             startYardLine: startYardLine,
@@ -150,13 +160,13 @@ class GameManager: ObservableObject {
     // MARK: - Play Management
     func setPlayType(_ type: PlayType) {
         playType = type
-        currentPlay = PlayData()
+        currentPlay = CurrentPlayData()
     }
     
     func updateCurrentPlay(
-        quarterback: Player? = nil,
-        receiver: Player? = nil,
-        runner: Player? = nil,
+        quarterback: PlayerData? = nil,
+        receiver: PlayerData? = nil,
+        runner: PlayerData? = nil,
         yards: Int? = nil,
         isComplete: Bool? = nil
     ) {
@@ -210,7 +220,7 @@ class GameManager: ObservableObject {
             playDescription += " (FIRST DOWN)"
         }
         
-        let newPlay = Play(
+        let newPlay = PlayData(
             sequence: drive.plays.count + 1,
             type: playType,
             description: playDescription,
@@ -232,6 +242,88 @@ class GameManager: ObservableObject {
         drive.currentYardLine = currentYardLine
         
         activeDrive = drive
+    }
+    
+    // MARK: - Helper Functions
+    func getEligibleScoringPlayers(for team: TeamData, type: ScoreType) -> [PlayerData] {
+        var eligiblePlayers: [PlayerData] = []
+        
+        switch type {
+        case .fieldGoal, .extraPoint:
+            eligiblePlayers = team.kickers
+        case .twoPointConversion:
+            eligiblePlayers = team.quarterbacks + team.runners + team.receivers
+        case .touchdown, .safety:
+            eligiblePlayers = team.quarterbacks + team.runners + team.receivers
+        }
+        
+        return eligiblePlayers
+    }
+    
+    private func getDownSuffix(down: Int) -> String {
+        switch down {
+        case 1: return "st"
+        case 2: return "nd"
+        case 3: return "rd"
+        default: return "th"
+        }
+    }
+    
+    func formatTimeInput(_ input: String) -> String {
+        // Remove any non-numeric characters
+        let numericOnly = input.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+        
+        if numericOnly.isEmpty {
+            return ""
+        }
+        
+        // Handle different input lengths
+        if numericOnly.count <= 2 {
+            // Just seconds (e.g., 43 -> 0:43)
+            return "0:\(numericOnly.padLeft(toLength: 2, withPad: "0"))"
+        } else if numericOnly.count <= 4 {
+            // Minutes and seconds (e.g., 835 -> 8:35)
+            let minutes = numericOnly.prefix(numericOnly.count - 2)
+            let seconds = numericOnly.suffix(2)
+            return "\(minutes):\(seconds)"
+        } else {
+            // Too many digits, truncate to 4
+            let truncated = String(numericOnly.prefix(4))
+            let minutes = truncated.prefix(truncated.count - 2)
+            let seconds = truncated.suffix(2)
+            return "\(minutes):\(seconds)"
+        }
+    }
+    
+    // MARK: - Statistics
+    func calculateStats() -> [String: [String: Int]] {
+        var stats: [String: [String: Int]] = [
+            "home": ["totalYards": 0, "passingYards": 0, "rushingYards": 0, "possession": 0],
+            "away": ["totalYards": 0, "passingYards": 0, "rushingYards": 0, "possession": 0]
+        ]
+        
+        for drive in drives {
+            let teamKey = drive.team.isHome ? "home" : "away"
+            
+            for play in drive.plays {
+                // Create a local copy of the team stats dictionary
+                var teamStats = stats[teamKey] ?? [:]
+                
+                if play.type == .pass, play.isComplete == true {
+                    teamStats["passingYards"] = (teamStats["passingYards"] ?? 0) + play.yards
+                    teamStats["totalYards"] = (teamStats["totalYards"] ?? 0) + play.yards
+                } else if play.type == .run {
+                    teamStats["rushingYards"] = (teamStats["rushingYards"] ?? 0) + play.yards
+                    teamStats["totalYards"] = (teamStats["totalYards"] ?? 0) + play.yards
+                }
+                
+                // Update the main stats dictionary with the modified copy
+                stats[teamKey] = teamStats
+            }
+        }
+        
+        return stats
+    }
         
         // Update down and distance
         if isFirstDown {
@@ -243,11 +335,11 @@ class GameManager: ObservableObject {
         }
         
         // Reset current play
-        currentPlay = PlayData()
+        currentPlay = CurrentPlayData()
     }
     
     // MARK: - Scoring
-    func addScore(type: ScoreType, player: Player, kicker: Player? = nil) {
+    func addScore(type: ScoreType, player: PlayerData, kicker: PlayerData? = nil) {
         guard var drive = activeDrive else { return }
         
         var description = ""
@@ -331,7 +423,7 @@ class GameManager: ObservableObject {
                 }
                 playerScores[teamKey] = existingScores
             } else {
-                var newPlayerScore = PlayerScore(player: player)
+                var newPlayerScore = PlayerScoreData(player: player)
                 switch type {
                 case .touchdown:
                     newPlayerScore.touchdowns = 1
@@ -348,7 +440,7 @@ class GameManager: ObservableObject {
                 playerScores[teamKey] = existingScores
             }
         } else {
-            var newPlayerScore = PlayerScore(player: player)
+            var newPlayerScore = PlayerScoreData(player: player)
             switch type {
             case .touchdown:
                 newPlayerScore.touchdowns = 1
@@ -365,7 +457,7 @@ class GameManager: ObservableObject {
         }
         
         // Add scoring play to drive
-        let scoringPlay = Play(
+        let scoringPlay = PlayData(
             sequence: drive.plays.count + 1,
             type: .scoring,
             description: description,
@@ -385,100 +477,3 @@ class GameManager: ObservableObject {
         
         drive.plays.append(scoringPlay)
         activeDrive = drive
-    }
-    
-    // MARK: - Helper Functions
-    func getEligibleScoringPlayers(for team: Team, type: ScoreType) -> [Player] {
-        var eligiblePlayers: [Player] = []
-        
-        switch type {
-        case .fieldGoal, .extraPoint:
-            eligiblePlayers = team.kickers
-        case .twoPointConversion:
-            eligiblePlayers = team.quarterbacks + team.runners + team.receivers
-        case .touchdown, .safety:
-            eligiblePlayers = team.quarterbacks + team.runners + team.receivers
-        }
-        
-        return eligiblePlayers
-    }
-    
-    private func getDownSuffix(down: Int) -> String {
-        switch down {
-        case 1: return "st"
-        case 2: return "nd"
-        case 3: return "rd"
-        default: return "th"
-        }
-    }
-    
-    func formatTimeInput(_ input: String) -> String {
-        // Remove any non-numeric characters
-        let numericOnly = input.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-        
-        if numericOnly.isEmpty {
-            return ""
-        }
-        
-        // Handle different input lengths
-        if numericOnly.count <= 2 {
-            // Just seconds (e.g., 43 -> 0:43)
-            return "0:\(numericOnly.padLeft(toLength: 2, withPad: "0"))"
-        } else if numericOnly.count <= 4 {
-            // Minutes and seconds (e.g., 835 -> 8:35)
-            let minutes = numericOnly.prefix(numericOnly.count - 2)
-            let seconds = numericOnly.suffix(2)
-            return "\(minutes):\(seconds)"
-        } else {
-            // Too many digits, truncate to 4
-            let truncated = String(numericOnly.prefix(4))
-            let minutes = truncated.prefix(truncated.count - 2)
-            let seconds = truncated.suffix(2)
-            return "\(minutes):\(seconds)"
-        }
-    }
-    
-    // MARK: - Statistics
-    func calculateStats() -> [String: [String: Int]] {
-        var stats: [String: [String: Int]] = [
-            "home": ["totalYards": 0, "passingYards": 0, "rushingYards": 0, "possession": 0],
-            "away": ["totalYards": 0, "passingYards": 0, "rushingYards": 0, "possession": 0]
-        ]
-        
-        for drive in drives {
-            let teamKey = drive.team.isHome ? "home" : "away"
-            
-            for play in drive.plays {
-                // Create a local copy of the team stats dictionary
-                var teamStats = stats[teamKey] ?? [:]
-                
-                if play.type == .pass, play.isComplete == true {
-                    teamStats["passingYards"] = (teamStats["passingYards"] ?? 0) + play.yards
-                    teamStats["totalYards"] = (teamStats["totalYards"] ?? 0) + play.yards
-                } else if play.type == .run {
-                    teamStats["rushingYards"] = (teamStats["rushingYards"] ?? 0) + play.yards
-                    teamStats["totalYards"] = (teamStats["totalYards"] ?? 0) + play.yards
-                }
-                
-                // Update the main stats dictionary with the modified copy
-                stats[teamKey] = teamStats
-            }
-        }
-        
-        return stats
-    }
-    } 
-
-// MARK: - Helper classes
-struct PlayData {
-    var quarterback: String = ""
-    var quarterbackName: String? = nil
-    var receiver: String = ""
-    var receiverName: String? = nil
-    var runner: String = ""
-    var runnerName: String? = nil
-    var yards: Int = 0
-    var isComplete: Bool = true
-}
-
-
