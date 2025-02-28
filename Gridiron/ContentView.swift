@@ -11,15 +11,13 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     
-    // Use a more specific type name to avoid ambiguity
-    @Query private var teamModels: [Item.TeamModel]
-    // Alternatively, if models are defined in a different file:
-    // @Query private var teamModels: [GridironModels.TeamModel]
+    // Use direct type name without namespace
+    @Query private var teams: [TeamModel]
     
     var body: some View {
         VStack {
             // Simple UI to verify build is working
-            if teamModels.isEmpty {
+            if teams.isEmpty {
                 Text("No teams found")
                 
                 Button("Add Sample Team") {
@@ -28,7 +26,7 @@ struct ContentView: View {
                 .buttonStyle(.bordered)
                 .padding()
             } else {
-                List(teamModels) { team in
+                List(teams) { team in
                     Text(team.name)
                         .foregroundColor(team.primaryColor)
                 }
@@ -38,8 +36,8 @@ struct ContentView: View {
     }
     
     private func addSampleTeam() {
-        // Explicitly specify which TeamModel you're using
-        let team = Item.TeamModel(
+        // Direct reference to TeamModel
+        let team = TeamModel(
             name: "Sample Team",
             shortName: "TEAM",
             primaryColorHex: "0000FF",
@@ -52,6 +50,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Item.TeamModel.self, Item.PlayerModel.self,
-                              Item.DriveModel.self, Item.PlayModel.self], inMemory: true)
+        .modelContainer(for: [TeamModel.self, PlayerModel.self,
+                              DriveModel.self, PlayModel.self], inMemory: true)
 }

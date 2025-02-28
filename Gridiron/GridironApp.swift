@@ -12,11 +12,11 @@ import SwiftData
 struct GridironApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            // Use explicit namespaces to avoid ambiguity
-            Item.TeamModel.self,
-            Item.PlayerModel.self,
-            Item.DriveModel.self,
-            Item.PlayModel.self
+            // Use direct type names without namespace
+            TeamModel.self,
+            PlayerModel.self,
+            DriveModel.self,
+            PlayModel.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
